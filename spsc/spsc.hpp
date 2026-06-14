@@ -49,7 +49,7 @@ public:
   {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
     const auto writeIndex = m_writeIndex.load(std::memory_order_relaxed);
-    const auto available = calculateFree(readIndex, writeIndex);
+    const auto available = calculateSpace(readIndex, writeIndex);
 
     if (available < count || count == 0) {
       return false;
@@ -100,7 +100,7 @@ public:
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
     const auto writeIndex = m_writeIndex.load(std::memory_order_relaxed);
 
-    auto available = calculateFree(readIndex, writeIndex);
+    auto available = calculateSpace(readIndex, writeIndex);
     if (available == 0 || count == 0) {
       return 0;
     }
@@ -251,7 +251,7 @@ private:
     return index(writeIndex + N - readIndex);
   }
 
-  constexpr auto calculateFree(std::size_t readIndex,
+  constexpr auto calculateSpace(std::size_t readIndex,
                                std::size_t writeIndex) const {
     return capacity() - calculateSize(readIndex, writeIndex);
   }
@@ -265,7 +265,7 @@ private:
   constexpr auto calculateSpaceToEnd(std::size_t readIndex,
                                      std::size_t writeIndex) const
       -> std::size_t {
-    return std::min(calculateFree(readIndex, writeIndex),
+    return std::min(calculateSpace(readIndex, writeIndex),
                     N - writeIndex - (readIndex == 0 ? 1 : 0));
   }
 
