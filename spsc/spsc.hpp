@@ -10,6 +10,7 @@
 
 namespace spsc {
 template <typename T, std::size_t N> class LockfreeSpscQueue {
+  static_assert(N > 1, "Queue size must be greater than 1");
 public:
   auto enqueue(T value) -> bool {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
