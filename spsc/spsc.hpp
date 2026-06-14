@@ -5,12 +5,14 @@
 #include <array>
 #include <atomic>
 #include <bit>
+#include <cassert>
 #include <cstddef>
 #include <span>
 
 namespace spsc {
 template <typename T, std::size_t N> class LockfreeSpscQueue {
   static_assert(N > 1, "Queue size must be greater than 1");
+
 public:
   auto enqueue(T value) -> bool {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
@@ -159,9 +161,9 @@ public:
   auto enqueueAll(std::span<const T> values) -> std::size_t {
     return enqueueAll(
         [&](std::span<T> dst) {
-          assert(dst.size() > values.size());
+          assert(dst.size() >= values.size());
 
-          std::copy_n(values.begin(), values.end(), dst.begin());
+          std::copy(values.begin(), values.end(), dst.begin());
           values = values.subspan(dst.size());
 
           return dst.size();
@@ -174,7 +176,7 @@ public:
         [&](std::span<const T> src) {
           assert(src.size() <= values.size());
 
-          std::copy_n(src.begin(), src.end(), values.begin());
+          std::copy(src.begin(), src.end(), values.begin());
           values = values.subspan(src.size());
 
           return src.size();
@@ -185,9 +187,9 @@ public:
   auto enqueueSome(std::span<const T> values) -> std::size_t {
     return enqueueSome(
         [&](std::span<T> dst) {
-          assert(dst.size() > values.size());
+          assert(dst.size() >= values.size());
 
-          std::copy_n(values.begin(), values.end(), dst.begin());
+          std::copy(values.begin(), values.end(), dst.begin());
           values = values.subspan(dst.size());
 
           return dst.size();
@@ -200,7 +202,7 @@ public:
         [&](std::span<const T> src) {
           assert(src.size() <= values.size());
 
-          std::copy_n(src.begin(), src.end(), values.begin());
+          std::copy(src.begin(), src.end(), values.begin());
           values = values.subspan(src.size());
 
           return src.size();
@@ -233,7 +235,7 @@ public:
 
   auto free() const -> std::size_t { return capacity() - size(); }
 
-  constexpr auto capacity() -> std::size_t { return N - 1; }
+  constexpr auto capacity() const -> std::size_t { return N - 1; }
 
 private:
   constexpr auto index(std::size_t index) const -> std::size_t {
