@@ -164,7 +164,7 @@ public:
           assert(dst.size() >= values.size());
 
           std::copy(values.begin(), values.end(), dst.begin());
-          values = values.subspan(dst.size());
+          values = values.subspan(values.size());
 
           return dst.size();
         },
