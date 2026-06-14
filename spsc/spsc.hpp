@@ -60,6 +60,7 @@ public:
       const auto spaceToEnd = calculateSpaceToEnd(readIndex, nextWriteIndex);
       const auto amountEnqueued = fn({&m_buffer[nextWriteIndex], spaceToEnd});
       nextWriteIndex = index(nextWriteIndex + amountEnqueued);
+      count -= amountEnqueued;
     }
 
     m_writeIndex.store(nextWriteIndex, std::memory_order_release);
@@ -155,18 +156,17 @@ public:
       totalDequeued += amountDequeued;
     }
 
+    m_readIndex.store(nextReadIndex, std::memory_order_release);
     return totalDequeued;
   }
 
   auto enqueueAll(std::span<const T> values) -> std::size_t {
     return enqueueAll(
         [&](std::span<T> dst) {
-          assert(dst.size() >= values.size());
-
-          std::copy(values.begin(), values.end(), dst.begin());
-          values = values.subspan(values.size());
-
-          return dst.size();
+          const auto amount = std::min(values.size(), dst.size());
+          std::copy_n(values.begin(), amount, dst.begin());
+          values = values.subspan(amount);
+          return amount;
         },
         values.size());
   }
@@ -174,12 +174,10 @@ public:
   auto dequeueAll(std::span<T> values) -> bool {
     return dequeueAll(
         [&](std::span<const T> src) {
-          assert(src.size() <= values.size());
-
-          std::copy(src.begin(), src.end(), values.begin());
-          values = values.subspan(src.size());
-
-          return src.size();
+          const auto amount = std::min(values.size(), src.size());
+          std::copy_n(src.begin(), amount, values.begin());
+          values = values.subspan(amount);
+          return amount;
         },
         values.size());
   }
@@ -187,12 +185,10 @@ public:
   auto enqueueSome(std::span<const T> values) -> std::size_t {
     return enqueueSome(
         [&](std::span<T> dst) {
-          assert(dst.size() >= values.size());
-
-          std::copy(values.begin(), values.end(), dst.begin());
-          values = values.subspan(dst.size());
-
-          return dst.size();
+          const auto amount = std::min(values.size(), dst.size());
+          std::copy_n(values.begin(), amount, dst.begin());
+          values = values.subspan(amount);
+          return amount;
         },
         values.size());
   }
@@ -200,12 +196,10 @@ public:
   auto dequeueSome(std::span<T> values) -> std::size_t {
     return dequeueSome(
         [&](std::span<const T> src) {
-          assert(src.size() <= values.size());
-
-          std::copy(src.begin(), src.end(), values.begin());
-          values = values.subspan(src.size());
-
-          return src.size();
+          const auto amount = std::min(values.size(), src.size());
+          std::copy_n(src.begin(), amount, values.begin());
+          values = values.subspan(amount);
+          return amount;
         },
         values.size());
   }
@@ -248,25 +242,36 @@ private:
 
   constexpr auto calculateSize(std::size_t readIndex,
                                std::size_t writeIndex) const {
+    if (readIndex <= writeIndex) {
+      return writeIndex - readIndex;
+    }
+
     return index(writeIndex + N - readIndex);
   }
 
   constexpr auto calculateSpace(std::size_t readIndex,
-                               std::size_t writeIndex) const {
+                                std::size_t writeIndex) const {
     return capacity() - calculateSize(readIndex, writeIndex);
   }
 
   constexpr auto calculateSizeToEnd(std::size_t readIndex,
                                     std::size_t writeIndex) const
       -> std::size_t {
-    return std::min(calculateSize(readIndex, writeIndex), N - readIndex);
+    if (readIndex <= writeIndex) {
+      return writeIndex - readIndex;
+    }
+
+    return N - readIndex;
   }
 
   constexpr auto calculateSpaceToEnd(std::size_t readIndex,
                                      std::size_t writeIndex) const
       -> std::size_t {
-    return std::min(calculateSpace(readIndex, writeIndex),
-                    N - writeIndex - (readIndex == 0 ? 1 : 0));
+    if (writeIndex < readIndex) {
+      return readIndex - writeIndex - 1;
+    }
+
+    return N - writeIndex - (readIndex == 0 ? 1 : 0);
   }
 
   constexpr auto calculateEmpty(std::size_t readIndex,

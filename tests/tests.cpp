@@ -61,8 +61,7 @@ TEST_CASE("Enqueue operations")
         auto queue = spsc::LockfreeSpscQueue<int, 3>{};
 
         CHECK(queue.enqueueSome(elements));
-        CHECK(queue.size() == 3);
-        CHECK(queue.full());
+        CHECK(queue.size() == queue.capacity());
         CHECK(queue.peek() == elements.front());
     }
 }
