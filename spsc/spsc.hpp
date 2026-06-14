@@ -90,7 +90,9 @@ public:
 
   template <typename Fn>
   auto enqueueSome(Fn &&fn, std::size_t count) -> std::size_t
-    requires(std::is_invocable_r_v<std::size_t, Fn, std::span<T>>)
+    requires std::is_invocable_v<Fn, std::span<T>> &&
+             std::is_convertible_v<std::invoke_result_t<Fn, std::span<T>>,
+                                   std::size_t>
   {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
     const auto writeIndex = m_writeIndex.load(std::memory_order_relaxed);
@@ -122,7 +124,9 @@ public:
 
   template <typename Fn>
   auto dequeueSome(Fn &&fn, std::size_t count) -> std::size_t
-    requires(std::is_invocable_r_v<std::size_t, Fn, std::span<const T>>)
+    requires std::is_invocable_v<Fn, std::span<const T>> &&
+             std::is_convertible_v<std::invoke_result_t<Fn, std::span<const T>>,
+                                   std::size_t>
   {
     const auto readIndex = m_readIndex.load(std::memory_order_relaxed);
     const auto writeIndex = m_writeIndex.load(std::memory_order_acquire);
