@@ -9,12 +9,25 @@
 #include <cstddef>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace spsc {
-template <typename T, std::size_t N> class LockfreeSpscQueue {
+
+constexpr auto DynamicQueueSize = static_cast<std::size_t>(-1);
+
+template <typename T, std::size_t N = DynamicQueueSize>
+class LockfreeSpscQueue {
   static_assert(N > 1, "Queue size must be greater than 1");
 
 public:
+  LockfreeSpscQueue()
+    requires(N != DynamicQueueSize)
+  = default;
+
+  explicit LockfreeSpscQueue(std::size_t size)
+    requires(N == DynamicQueueSize)
+      : m_buffer(size) {}
+
   auto enqueue(T value) -> bool {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
     const auto writeIndex = m_writeIndex.load(std::memory_order_relaxed);
@@ -286,7 +299,8 @@ private:
     return (writeIndex + 1) % N == readIndex;
   }
 
-  std::array<T, N> m_buffer;
+  std::conditional_t<N == DynamicQueueSize, std::vector<T>, std::array<T, N>>
+      m_buffer;
   alignas(std::hardware_destructive_interference_size) std::atomic_size_t
       m_readIndex = 0;
   alignas(std::hardware_destructive_interference_size) std::atomic_size_t
