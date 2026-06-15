@@ -319,8 +319,8 @@ private:
     return index(writeIndex + 1) == readIndex;
   }
 
-  std::conditional_t<N == DynamicQueueSize, std::vector<T>, std::array<T, N>>
-      m_buffer;
+  alignas(std::hardware_constructive_interference_size) std::conditional_t<
+      N == DynamicQueueSize, std::vector<T>, std::array<T, N>> m_buffer;
   alignas(std::hardware_destructive_interference_size) std::atomic_size_t
       m_readIndex = 0;
   alignas(std::hardware_destructive_interference_size) std::atomic_size_t
