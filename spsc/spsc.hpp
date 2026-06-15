@@ -7,6 +7,7 @@
 #include <bit>
 #include <cassert>
 #include <cstddef>
+#include <optional>
 #include <span>
 
 namespace spsc {
@@ -28,17 +29,17 @@ public:
     return true;
   }
 
-  auto dequeue(T &value) -> bool {
+  auto dequeue() -> std::optional<T> {
     const auto readIndex = m_readIndex.load(std::memory_order_relaxed);
     const auto writeIndex = m_writeIndex.load(std::memory_order_acquire);
 
     if (readIndex == writeIndex) {
-      return false;
+      return std::nullopt;
     }
 
-    value = std::move(m_buffer[readIndex]);
+    auto value = std::move(m_buffer[readIndex]);
     m_readIndex.store(index(readIndex + 1), std::memory_order_release);
-    return true;
+    return value;
   }
 
   template <typename Fn>

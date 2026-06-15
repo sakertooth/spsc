@@ -80,21 +80,16 @@ TEST_CASE("Dequeue operations")
     SUBCASE("Dequeuing single element")
     {
         auto queue = spsc::LockfreeSpscQueue<int, 32>{};
-        auto value = 0;
-
         queue.enqueue(1);
 
-        CHECK(queue.dequeue(value));
-        CHECK(value == 1);
+        CHECK(queue.dequeue() == 1);
     }
 
     SUBCASE("Dequeuing single element when queue is empty")
     {
         auto queue = spsc::LockfreeSpscQueue<int, 32>{};
-        auto value = 0;
 
-        CHECK(!queue.dequeue(value));
-        CHECK(value == 0);
+        CHECK(!queue.dequeue().has_value());
     }
 
     SUBCASE("Dequeuing all batch of elements requested")
@@ -156,35 +151,22 @@ TEST_CASE("Enqueue + Dequeue operations")
     SUBCASE("Enqueue and dequeue, no wrap-around")
     {
         auto queue = spsc::LockfreeSpscQueue<int, 3>{};
-        auto value = 0;
 
         CHECK(queue.enqueue(1));
         CHECK(queue.enqueue(2));
-
-        CHECK(queue.dequeue(value));
-        CHECK(value == 1);
-
-        CHECK(queue.dequeue(value));
-        CHECK(value == 2);
+        CHECK(queue.dequeue() == 1);
+        CHECK(queue.dequeue() == 2);
     }
 
     SUBCASE("Enqueue and dequeue, wrap around")
     {
         auto queue = spsc::LockfreeSpscQueue<int, 3>{};
-        auto value = 0;
 
         CHECK(queue.enqueue(1));
         CHECK(queue.enqueue(2));
-
-        CHECK(queue.dequeue(value));
-        CHECK(value == 1);
-
+        CHECK(queue.dequeue() == 1);
         CHECK(queue.enqueue(3));
-
-        CHECK(queue.dequeue(value));
-        CHECK(value == 2);
-
-        CHECK(queue.dequeue(value));
-        CHECK(value == 3);
+        CHECK(queue.dequeue() == 2);
+        CHECK(queue.dequeue() == 3);
     }
 }
