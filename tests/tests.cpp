@@ -15,7 +15,7 @@ TEST_CASE("Correct initial state on construction")
 
 TEST_CASE("Enqueue operations")
 {
-    SUBCASE("Enqueing single element")
+    SUBCASE("Enqueuing single element")
     {
         constexpr auto element = 7;
         auto queue = spsc::LockfreeSpscQueue<int, 32>{};
@@ -25,7 +25,7 @@ TEST_CASE("Enqueue operations")
         CHECK(queue.peek() == element);
     }
 
-    SUBCASE("Enqueing single element (not enough space)")
+    SUBCASE("Enqueuing single element (not enough space)")
     {
         auto queue = spsc::LockfreeSpscQueue<int, 3>{};
 
@@ -34,7 +34,7 @@ TEST_CASE("Enqueue operations")
         CHECK(!queue.enqueue(3));
     }
 
-    SUBCASE("Enqueing all items in batch")
+    SUBCASE("Enqueuing all items in batch")
     {
         constexpr auto elements = std::array{1, 2, 3, 4, 5, 6};
         auto queue = spsc::LockfreeSpscQueue<int, 32>{};
@@ -44,7 +44,7 @@ TEST_CASE("Enqueue operations")
         CHECK(queue.peek() == elements.front());
     }
 
-    SUBCASE("Enqueing all items in batch (not enough space)")
+    SUBCASE("Enqueuing all items in batch (not enough space)")
     {
         constexpr auto elements = std::array{1, 2, 3, 4, 5, 6};
         auto queue = spsc::LockfreeSpscQueue<int, 3>{};
@@ -53,7 +53,7 @@ TEST_CASE("Enqueue operations")
         CHECK(queue.size() == 0);
     }
 
-    SUBCASE("Enqueing some items in batch")
+    SUBCASE("Enqueuing some items in batch")
     {
         constexpr auto elements = std::array{1, 2, 3, 4, 5, 6};
         auto queue = spsc::LockfreeSpscQueue<int, 32>{};
@@ -64,7 +64,7 @@ TEST_CASE("Enqueue operations")
     }
 
 
-    SUBCASE("Enqueing some items in batch (not enough space)")
+    SUBCASE("Enqueuing some items in batch (not enough space)")
     {
         constexpr auto elements = std::array{1, 2, 3, 4, 5, 6};
         auto queue = spsc::LockfreeSpscQueue<int, 3>{};
