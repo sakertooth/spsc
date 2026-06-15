@@ -16,3 +16,5 @@ function(add_benchmark name)
 endfunction()
 
 add_benchmark(throughput_single)
+add_benchmark(throughput_batch_all)
+add_benchmark(throughput_batch_some)
