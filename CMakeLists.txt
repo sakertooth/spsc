@@ -9,7 +9,7 @@ add_library(spsc INTERFACE)
 target_include_directories(spsc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/spsc)
 target_compile_features(spsc INTERFACE cxx_std_20)
 
-option(BUILD_TESTS "Build the test suite", ON)
+option(BUILD_TESTS "Build the test suite" ON)
 option(BUILD_BENCHMARKS "Build the benchmarks" ON)
 
 if(BUILD_TESTS)
