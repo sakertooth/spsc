@@ -244,7 +244,13 @@ public:
 
   auto free() const -> std::size_t { return capacity() - size(); }
 
-  constexpr auto capacity() const -> std::size_t { return N - 1; }
+  constexpr auto capacity() const -> std::size_t {
+    if constexpr (N == DynamicQueueSize) {
+      return m_buffer.size() - 1;
+    } else {
+      return N - 1;
+    }
+  }
 
 private:
   constexpr auto index(std::size_t index) const -> std::size_t {
