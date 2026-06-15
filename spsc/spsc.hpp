@@ -248,10 +248,18 @@ public:
 
 private:
   constexpr auto index(std::size_t index) const -> std::size_t {
-    if constexpr (std::has_single_bit(N)) {
-      return index & (N - 1);
+    if constexpr (N == DynamicQueueSize) {
+      if (std::has_single_bit(m_buffer.size())) {
+        return index & (m_buffer.size() - 1);
+      } else {
+        return index % m_buffer.size();
+      }
     } else {
-      return index % N;
+      if constexpr (std::has_single_bit(N)) {
+        return index & (N - 1);
+      } else {
+        return index % N;
+      }
     }
   }
 
@@ -261,7 +269,11 @@ private:
       return writeIndex - readIndex;
     }
 
-    return index(writeIndex + N - readIndex);
+    if constexpr (N == DynamicQueueSize) {
+      return index(writeIndex + m_buffer.size() - readIndex);
+    } else {
+      return index(writeIndex + N - readIndex);
+    }
   }
 
   constexpr auto calculateSpace(std::size_t readIndex,
@@ -276,7 +288,11 @@ private:
       return writeIndex - readIndex;
     }
 
-    return N - readIndex;
+    if constexpr (N == DynamicQueueSize) {
+      return m_buffer.size() - readIndex;
+    } else {
+      return N - readIndex;
+    }
   }
 
   constexpr auto calculateSpaceToEnd(std::size_t readIndex,
@@ -286,7 +302,11 @@ private:
       return readIndex - writeIndex - 1;
     }
 
-    return N - writeIndex - (readIndex == 0 ? 1 : 0);
+    if constexpr (N == DynamicQueueSize) {
+      return m_buffer.size() - writeIndex - (readIndex == 0 ? 1 : 0);
+    } else {
+      return N - writeIndex - (readIndex == 0 ? 1 : 0);
+    }
   }
 
   constexpr auto calculateEmpty(std::size_t readIndex,
@@ -296,7 +316,7 @@ private:
 
   constexpr auto calculateFull(std::size_t readIndex,
                                std::size_t writeIndex) const -> bool {
-    return (writeIndex + 1) % N == readIndex;
+    return index(writeIndex + 1) == readIndex;
   }
 
   std::conditional_t<N == DynamicQueueSize, std::vector<T>, std::array<T, N>>
