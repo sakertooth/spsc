@@ -83,9 +83,10 @@ public:
 
     auto nextReadIndex = readIndex;
     while (count > 0) {
-      const auto sizeToEnd = calculateSizeToEnd(readIndex, nextReadIndex);
+      const auto sizeToEnd = calculateSizeToEnd(nextReadIndex, writeIndex);
       const auto amountDequeued = fn({&m_buffer[nextReadIndex], sizeToEnd});
       nextReadIndex = index(nextReadIndex + amountDequeued);
+      count -= amountDequeued;
     }
 
     m_readIndex.store(nextReadIndex, std::memory_order_release);
