@@ -16,6 +16,7 @@ template <std::size_t N> struct SpscFixture : public benchmark::Fixture {
     if (state.thread_index() == 0) {
       state.SetItemsProcessed(itemsProcessed);
       queue.reset();
+      itemsProcessed = 0;
     }
   }
 };
