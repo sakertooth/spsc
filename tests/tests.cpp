@@ -25,6 +25,15 @@ TEST_CASE("Enqueue operations")
         CHECK(queue.peek() == element);
     }
 
+    SUBCASE("Enqueing single element (not enough space)")
+    {
+        auto queue = spsc::LockfreeSpscQueue<int, 3>{};
+
+        CHECK(queue.enqueue(1));
+        CHECK(queue.enqueue(2));
+        CHECK(!queue.enqueue(3));
+    }
+
     SUBCASE("Enqueing all items in batch")
     {
         constexpr auto elements = std::array{1, 2, 3, 4, 5, 6};
