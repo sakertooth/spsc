@@ -13,21 +13,32 @@
 
 namespace spsc {
 
+namespace {
 constexpr auto DynamicQueueSize = static_cast<std::size_t>(-1);
+}
 
 template <typename T, std::size_t N = DynamicQueueSize>
 class LockfreeSpscQueue {
   static_assert(N > 1, "Queue size must be greater than 1");
 
 public:
+  //! @brief Create a queue with a fixed capacity.
   LockfreeSpscQueue()
     requires(N != DynamicQueueSize)
   = default;
 
-  explicit LockfreeSpscQueue(std::size_t size)
+  //! @brief Create a queue with a capacity of @a capacity elements.
+  explicit LockfreeSpscQueue(std::size_t capacity)
     requires(N == DynamicQueueSize)
-      : m_buffer(size) {}
+      : m_buffer(capacity) {}
 
+  /**
+   * @brief Enqueues @a value into the queue.
+   *
+   * @param value
+   * @returns true if @a value was sucessfully enqueued (enough space)
+   * @returns false if @a value was not enqueued (queue was full)
+   */
   auto enqueue(T value) -> bool {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
     const auto writeIndex = m_writeIndex.load(std::memory_order_relaxed);
@@ -42,6 +53,12 @@ public:
     return true;
   }
 
+  /**
+   * @brief Dequeues a value from the front of the queue.
+   *
+   * @returns the value at the front of the queue, or std::nullopt if the queue
+   * was empty.
+   */
   auto dequeue() -> std::optional<T> {
     const auto readIndex = m_readIndex.load(std::memory_order_relaxed);
     const auto writeIndex = m_writeIndex.load(std::memory_order_acquire);
@@ -55,6 +72,20 @@ public:
     return value;
   }
 
+  /**
+   * @brief Enqueues all @a count elements that were supplied by the callback @a
+   fn. This function is all or nothing: It either enqueues all @a count
+   elements, or it doesn't enqueue any of them. @a fn will continue to be
+   executed untill all @a count slots have been filled in the queue.
+   *
+   * @param fn - the callback to supply elements. It is given a std::span<T>,
+   specifying the region to enqueue elements in. It returns the number of
+   elements enqueued by this invocation of @a fn.
+   *
+   * @param count - the total number of elements that are to be enqueued.
+   * @return true - all @a count elements were enqueued successfully.
+   * @return false - failed to enqueue all @a count elements (not enough space).
+   */
   template <typename Fn>
   auto enqueueAll(Fn &&fn, std::size_t count) -> bool
     requires std::is_invocable_v<Fn, std::span<T>> &&
@@ -81,6 +112,21 @@ public:
     return true;
   }
 
+  /**
+   * @brief Dequeues all @a count elements that were supplied by the callback @a
+   * fn. This function is all or nothing: It either dequeues all @a count
+   * elements, or it doesn't dequeue any of them. @a fn will continue to be
+   *  executed untill all @a count slots have been moved out of the queue.
+   *
+   * @param fn - the callback to transfer elements to. It is given a
+   * std::span<const T>, specifying the region to dequeue elements from. It
+   * returns the number of elements dequeued by this invocation of @a fn.
+   *
+   * @param count - the total number of elements that are to be dequeued.
+   * @return true - all @a count elements were dequeued successfully.
+   * @return false - failed to dequeue all @a count elements (not enough
+   * elements).
+   */
   template <typename Fn>
   auto dequeueAll(Fn &&fn, std::size_t count) -> bool
     requires std::is_invocable_v<Fn, std::span<const T>> &&
@@ -107,6 +153,22 @@ public:
     return true;
   }
 
+  /**
+   * @brief Enqueues at most @a count elements into the queue that were supplied
+   by the callback @a fn.
+
+   * Less than @a count elements being enqueued is allowed here. @a fn will
+   * continue to execute until either there is no more available space to
+   * enqueue more elements, or if all @a counts were enqueued, whichever happens
+   * first.
+   *
+   * @param fn - the callback to supply elements in. Takes in a `std::span<T>`,
+   * specifying the region to enqueue elements in, and returns the number of
+   * elements enqueued by this invocation of @a fn.
+   *
+   * @param count - the maximum number of elements to enqueue
+   * @returns the number of elements enqueued
+   */
   template <typename Fn>
   auto enqueueSome(Fn &&fn, std::size_t count) -> std::size_t
     requires std::is_invocable_v<Fn, std::span<T>> &&
@@ -141,6 +203,22 @@ public:
     return totalEnqueued;
   }
 
+  /**
+   * @brief Dequeues at most @a count elements into the queue that were consumed
+   * by the callback @a fn.
+
+   * Less than @a count elements being dequeued is allowed here. @a fn will
+   * continue to execute until either there are no more elements to
+   * dequeue, or if @a count elements were dequeued, whichever happens
+   * first.
+   *
+   * @param fn - Takes in a `std::span<const T>`, specifying the region to
+   * consume elements from, and returns the number of elements dequeued by this
+   * invocation of @a fn.
+   *
+   * @param count - The maximum number of elements to dequeue
+   * @returns The number of elements dequeued
+   */
   template <typename Fn>
   auto dequeueSome(Fn &&fn, std::size_t count) -> std::size_t
     requires std::is_invocable_v<Fn, std::span<const T>> &&
@@ -175,6 +253,7 @@ public:
     return totalDequeued;
   }
 
+  //! Tries to enqueue all values in @a values. @see enqueueAll(Fn, std::size_t)
   auto enqueueAll(std::span<const T> values) -> std::size_t {
     return enqueueAll(
         [&](std::span<T> dst) {
@@ -186,6 +265,7 @@ public:
         values.size());
   }
 
+  //! Tries to dequeue all values in @a values. @see enqueueAll(Fn, std::size_t)
   auto dequeueAll(std::span<T> values) -> bool {
     return dequeueAll(
         [&](std::span<const T> src) {
@@ -197,6 +277,8 @@ public:
         values.size());
   }
 
+  //! Tries to enqueue at most `values.size()` values in @a values. @see
+  //! enqueueSome(Fn, std::size_t)
   auto enqueueSome(std::span<const T> values) -> std::size_t {
     return enqueueSome(
         [&](std::span<T> dst) {
@@ -208,6 +290,8 @@ public:
         values.size());
   }
 
+  //! Tries to dequeue at most `values.size()` values in @a values. @see
+  //! dequeueSome(Fn, std::size_t)
   auto dequeueSome(std::span<T> values) -> std::size_t {
     return dequeueSome(
         [&](std::span<const T> src) {
@@ -219,31 +303,40 @@ public:
         values.size());
   }
 
+  //! @returns a const reference to the element at the front of the queue.
   auto peek() const -> const T & {
     const auto readIndex = m_readIndex.load(std::memory_order_relaxed);
     return m_buffer[readIndex];
   }
 
+  //! @returns whether or not the queue is empty
   auto empty() const -> bool {
     const auto readIndex = m_readIndex.load(std::memory_order_relaxed);
     const auto writeIndex = m_writeIndex.load(std::memory_order_acquire);
     return calculateEmpty(readIndex, writeIndex);
   }
 
+  //! @returns true if the queue is full
+  //! @returns false is the queue is not full
   auto full() const -> bool {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
     const auto writeIndex = m_writeIndex.load(std::memory_order_relaxed);
     return calculateFull(readIndex, writeIndex);
   }
 
+  //! @returns the number of elements in the queue
   auto size() const -> std::size_t {
     const auto readIndex = m_readIndex.load(std::memory_order_acquire);
     const auto writeIndex = m_writeIndex.load(std::memory_order_acquire);
     return calculateSize(readIndex, writeIndex);
   }
 
+  //! @returns the number of free slots in the queue
   auto free() const -> std::size_t { return capacity() - size(); }
 
+  //! @returns the maximum number of elements that can be stored in the queue
+  //! @note this will be one less than the capacity specified upon construction
+  //! of the queue to accomodate for an empty slot.
   constexpr auto capacity() const -> std::size_t {
     if constexpr (N == DynamicQueueSize) {
       return m_buffer.size() - 1;
