@@ -15,13 +15,13 @@ A header-only, low-latency Single-Producer Single-Consumer (SPSC) lock-free queu
 * [CMake 3.23+](https://github.com/kitware/cmake)
 
 ## Benchmarks
-The following benchmarks were retrieved on a system running Arch Linux x86_64, with an AMD Ryzen 7 5700U (16) @ 4.37 GHz CPU. No thread pinning or real-time scheduling was done. The metrics were the results retrieved after 10 runs. Results may vary. CPU frequency scaling was also disabled (via setting the CPU governor to `performance`).
+The following benchmarks were retrieved on a system running Arch Linux x86_64, with an AMD Ryzen 7 5700U (16) @ 4.37 GHz CPU. No thread pinning or real-time scheduling was done. The metrics were the results retrieved after 10 runs. Results may vary. CPU frequency scaling was also disabled (via setting the CPU governor to `performance`). 
 
-Here are the throughput and latency metrics when strictly using `enqueue` and `dequeue` across two producer and consumer threads. 
+Here are the throughput and latency metrics when strictly using `enqueue` and `dequeue` across two producer and consumer threads.  
 ![Single element throughput benchmark](benchmarks/single_element_throughput.png)
 ![Single element throughput benchmark](benchmarks/single_element_latency.png)
 
-Here are the throughput and latency metrics when strictly using `enqueueAll`/`dequeueAll` batch processing. Note that these results were similar to when using `enqueueSome`/`dequeueSome`, so for brevity, they are omitted here but still available for benchmarking on your own system. 
+Here are the throughput and latency metrics when strictly using `enqueueAll`/`dequeueAll` batch processing. Note that these results were similar to when using `enqueueSome`/`dequeueSome`, so for brevity, they are omitted here but still available for benchmarking on your own system.  
 ![Batch throughput benchmark](benchmarks/batch_throughput.png)
 ![Batch latency benchmark](benchmarks/batch_latency.png)
 
