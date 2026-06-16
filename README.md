@@ -13,10 +13,18 @@ A header-only, low-latency Single-Producer Single-Consumer (SPSC) lock-free queu
 ## Prerequisites
 * Modern C++ compiler supporting C++20 or higher
 * [CMake 3.23+](https://github.com/kitware/cmake)
-* [Google Benchmark](https://github.com/google/benchmark/tree/main)
 
 ## Benchmarks
-The following benchmarks were retrieved on a system running Arch Linux x86_64, with an AMD Ryzen 7 5700U (16) @ 4.37 GHz CPU. No thread pinning, CPU frequency scaling, or real-time scheduling was done. The metrics were the results retrieved after 10 runs.
+The following benchmarks were retrieved on a system running Arch Linux x86_64, with an AMD Ryzen 7 5700U (16) @ 4.37 GHz CPU. No thread pinning or real-time scheduling was done. The metrics were the results retrieved after 10 runs. Results may vary. CPU frequency scaling was also disabled (via setting the CPU governor to `performance`).
+
+Here are the throughput and latency metrics when strictly using `enqueue` and `dequeue` across two producer and consumer threads.
+![Single element throughput benchmark](benchmarks/single_element_throughput.png)
+![Single element throughput benchmark](benchmarks/single_element_latency.png)
+
+Here are the throughput and latency metrics when strictly using `enqueueAll`/`dequeueAll` batch processing. Note that these results were similar to when using `enqueueSome`/`dequeueSome`, so for brevity, they are omitted here but still available for benchmarking on your own system.
+![Batch throughput benchmark](benchmarks/batch_throughput.png)
+![Batch latency benchmark](benchmarks/batch_latency.png)
+
 
 ### Single Element Operations
 * Peak throughput: ~805M ops/sec
@@ -48,7 +56,7 @@ auto queue = spsc::LockfreeSpscQueue<int>{1024};
 
 ### Batch Processing
 
-`enqueueAll` can be used to enqueue all of the elements specified, or none at all if the queue cant fit all of them. `dequeueAll` provides the same all or nothing guarantees, but for when items are being dequeued. Both functions return `true` if the operation was successful. Otherwise, they return `false`.
+`enqueueAll` can be used to enqueue all of the elements specified, or none at all if the queue cant fit all of them. `dequeueAll` provides the "same all or nothing" guarantees, but for when items are being dequeued. Both functions return `true` if the operation was successful. Otherwise, they return `false`.
 
 ```cpp
 auto batch = std::array<int, 256>{};
